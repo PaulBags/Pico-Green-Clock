@@ -1,0 +1,11 @@
+# Exclude files for including private configs, e.g. wifi credentials
+# Concept, not implemented in project yet
+*_private.*
+
+# Exclude Notepad++ auto-backup files
+*.bak
+
+# Exclude build directory
+/build
+
+# PaulBags 2023-JUN-30

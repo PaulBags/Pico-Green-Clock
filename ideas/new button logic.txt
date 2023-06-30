@@ -1,0 +1,93 @@
+// Problem 1: waiting for key release provides no feedback to user that the long key press condition has been met.
+// Problem 2: currently all key press times are counted and triggered, if more than one key is pressed more than one thing may happen?
+// Bonus 1: we could, if we want to, assign functions to combinations of key presses as well.
+// Also: short press and long press times could be variables.
+
+enum __attribute__((__packed__)) Keys {
+  KeySet       = 01, // 0b0001
+  KeyUp        = 02, // 0b0010
+  KeyDown      = 04, // 0b0100
+  KeySetUp     = 03, // 0b0011
+  KeySetDown   = 05, // 0b0101
+  KeyUpDown    = 06, // 0b0110
+  KeySetUpDown = 07, // 0b0111
+};
+uint16_t KeyTimeCounts[8] = {0}; // 0 = highest, 1..7 = key combination
+
+// re-zero KeyTimeCounts
+void ResetKeyTimeCounts(void) {
+  int i;
+  for (i = 0; i <= KeySetUpDown; i++) {
+    KeyTimeCounts[i] = 0;
+  }
+}
+
+// key combination
+int pressed_key_combo(void) {
+  int highest = 0;
+  int result = 0;
+  int i;
+  for (i = KeySet; i <= KeySetUpDown; i++) { // Evaluate KeyTimeCounts array 1..7, index is key combo.
+    if (KeyTimeCounts[i] > highest) {
+      highest = KeyTimeCounts[i];
+      result = i;
+    }
+  }
+  return result;
+}
+
+/** Get all 3 gpios and return pressed state:
+  nothing pressed = 0
+  set = 1
+  up = 2
+  down = 4
+  set + up = 1 + 2 = 3
+  set + down = 1 + 4 = 5
+  up + down = 2 + 4 = 6
+  set + up + down = 1 + 2 + 4 = 7 **/
+
+// Check whether we need to track key pressed time
+if (pressed && !wait_for_release) {
+  /// get rid of KeyPressTime variables, use KeyTimeCounts array
+  ++KeyTimeCounts[0]; // track overall key time
+  ++KeyTimeCounts[pressed]; // track time of particular key or combination
+  if (KeyTimeCounts[0] > long_press) { //if we've already satisfied long press condition...
+    wait_for_release = FLAG_ON;   // ...disable key press time tracking, to move us into key pressed option handling on next tick even if key still pressed
+  }
+}
+
+else {
+  // clear key press times that were too short
+  if (KeyTimeCounts[0] > 0 && KeyTimeCounts[0] < short_press) {
+    ResetKeyTimeCounts();
+  }
+  
+  // Handle key press actions
+  else if (KeyTimeCounts[0] > short_press) { // if we've had at least a short press
+  
+    uint8_t key_combo = pressed_key_combo();
+    
+    if (KeyTimeCounts[0] > long_press) { // handle long press
+      /* switch key_combo
+        etc */
+    }
+    else { // handle short press
+      /* switch key_combo
+        etc */
+    }
+    
+    // Clear key press times after handling a key press
+    ResetKeyTimeCounts();
+  }
+  
+  /* If long press release has happened, clear flag.
+     Do this last so that user feedback happens before key monitoring resumes,
+     and clearing happens regardless of other key handling logic. */
+  if (!pressed && wait_for_release) {
+    wait_for_release = FLAG_OFF;
+  }
+}
+
+
+
+// PaulBags 2023-JUN-30
