@@ -13,6 +13,7 @@ enum __attribute__((__packed__)) Keys {
   KeySetUpDown = 07, // 0b0111
 };
 uint16_t KeyTimeCounts[8] = {0}; // 0 = highest, 1..7 = key combination
+uint8_t MenuScrolling = FLAG_OFF; // add a state for menu options where numbers/options can be scrolled up or down, to allow holding button to scroll.
 
 // re-zero KeyTimeCounts
 void ResetKeyTimeCounts(void) {
@@ -51,17 +52,26 @@ if (pressed && !wait_for_release) {
   /// get rid of KeyPressTime variables, use KeyTimeCounts array
   ++KeyTimeCounts[0]; // track overall key time
   ++KeyTimeCounts[pressed]; // track time of particular key or combination
-  if (KeyTimeCounts[0] > long_press) { //if we've already satisfied long press condition...
+  if (MenuScrolling && KeyTimeCounts[0] > scroll_press) {
+    wait_for_release = FLAG_ON;   // Tick scrolling
+  }
+  else if (KeyTimeCounts[0] > long_press) { //if we've already satisfied long press condition...
     wait_for_release = FLAG_ON;   // ...disable key press time tracking, to move us into key pressed option handling on next tick even if key still pressed
   }
 }
 
 else {
-  // clear key press times that were too short
-  if (KeyTimeCounts[0] > 0 && KeyTimeCounts[0] < short_press) {
+  // clear key press times that were too short, skip key actions
+  if (!MenuScrolling && KeyTimeCounts[0] > 0 && KeyTimeCounts[0] < short_press) {
     ResetKeyTimeCounts();
   }
-  
+  // Handle menu scrolling
+  else if (MenuScrolling) {
+    /* switch key_combo
+      etc */
+    ResetKeyTimeCounts();
+    wait_for_release = FLAG_OFF;
+  }
   // Handle key press actions
   else if (KeyTimeCounts[0] > short_press) { // if we've had at least a short press
   
